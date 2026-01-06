@@ -1,6 +1,7 @@
 import {useEffect, useRef, useState} from 'react'
-import {TextField, Button} from '@mui/material'
+import {TextField, Button, IconButton,Badge} from '@mui/material'
 import {io} from 'socket.io-client'
+import {CallEnd, Videocam,VideocamOff,Mic,MicOff,ScreenShare,StopScreenShare,Chat} from '@mui/icons-material'
 
 const wsServer = import.meta.env.VITE_SERVER_URL;
 
@@ -77,6 +78,8 @@ const VideoMeet = () => {
             return stream
         } catch (e) {
             console.error("Error getting user stream:", e)
+            localVideoRef.current.srcObject.getTracks().forEach(t=>t.stop())
+        window.localStream = null;
         }
     }
 
@@ -333,7 +336,7 @@ const VideoMeet = () => {
     }, [])
 
     return (
-        <main>
+        <main className='h-[100vh] w-[99vw]'>
             {askForUsername ? (
                 <div>
                     <h2>Enter into lobby</h2>
@@ -347,32 +350,47 @@ const VideoMeet = () => {
                     <video src="#" ref={localVideoRef} autoPlay muted playsInline></video>
                 </div>
             ) : (
-                <div>
-                    <h2>You Joined a video meeting</h2>
-                    <div>
-                        <h3>Local Video</h3>
-                        <video ref={localVideoRef} autoPlay muted playsInline></video>
+                <div className='relative h-full text-white overflow-auto p-4 bg-[rgba(1,4,48)]'> 
+                    <div className="button-container flex gap-4 absolute bottom-[3%] left-[40%]">
+                        <IconButton onClick={()=>setVideo(!video)}>
+                            {video?<Videocam className='text-white bg-gray-800 rounded-full' sx={{fontSize:'3.2rem',padding:'5px'}}/>:<VideocamOff className='text-white bg-gray-800  rounded-full' sx={{fontSize:'3.2rem',padding:'5px'}}/>}
+                        </IconButton>
+                         <IconButton onClick={()=>setAudio(!audio)}>
+                         {audio?<Mic className='text-white bg-gray-800 rounded-full' sx={{fontSize:'3.2rem',padding:'5px'}} />:<MicOff className='text-white bg-gray-800 rounded-full' sx={{fontSize:'3.2rem',padding:'5px'}}/>}
+                        </IconButton>
+                        <IconButton>
+                         <CallEnd className='text-white bg-red-800 rounded-full' sx={{fontSize:'3.2rem',padding:'5px'}}/>
+                        </IconButton>
+                        <IconButton>
+                            {screen ? <ScreenShare className='text-white bg-gray-800 rounded-xl' sx={{fontSize:'3.2rem',padding:'10px'}}/> : <StopScreenShare className='text-white bg-gray-800 rounded-xl' sx={{fontSize:'3.2rem',padding:'10px'}}/>}
+                        </IconButton>
+                        <Badge badgeContent={newMessages} max={999} color='secondary'>
+                            <IconButton>
+                                <Chat className='text-white bg-gray-800 rounded-full' sx={{fontSize:'3.2rem',padding:'10px'}}/>
+                            </IconButton>
+                        </Badge>
+                    </div>
+                    <div className='absolute h-[30%] w-auto bottom-5 right-5'>
+                        <h3>{username} (You)</h3>
+                        <video className='w-full h-[90%] rounded-xl' ref={localVideoRef} autoPlay muted playsInline></video>
 
                     </div>
-                    <div>
-                        <h3>Remote Videos {videos.length}</h3>
-                        {console.log(connections)
-                        }
-                        {videos.map((video, index) => (
-                            <>
+                    <div className='h-[70%] w-auto flex gap-4 overflow-auto'>
+                        {videos.map((video) => (
+                            <div className='h-full' key={video.socketId}>
+                                <h2 id={video.socketId}>{video.userName}</h2>
                             <video 
-                                key={video.socketId || index}
+                                className='rounded-xl h-[90%] mt-2'
+                                data-socket={video.socketId}
                                 autoPlay 
                                 playsInline
                                 ref={el => {
-                                     
                                     if (el && video.stream) {
                                         el.srcObject = video.stream
                                     }
                                 }}
                             />
-                            {video.userName}
-                            </>
+                            </div>
                         ))}
                     </div>
                 </div>
